@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>  
+    <head>
+        <title>Example 01.01 - Basic skeleton</title>
+        <script type="text/javascript" src="libs/three.min.js"></script>
+        <script type="text/javascript" src="libs/stats.min.js"></script>
+        <script type="text/javascript" src="libs/dat.gui.min.js"></script>
+        <script type="text/javascript" src="libs/jquery-1.11.2.min.js"></script>
+
+        <style>
+        body{
+        /* set margin to 0 and overflow to hidden, 
+        to use the complete page */
+        margin: 0;
+        overflow: hidden;
+        }
+        </style>
+    </head>
+    <body>
+        <!--Div which will hold the Output -->
+        <div id="WebGL-output"></div>
+
+        <!--Div which stat hold the Output -->
+        <div id="Stats-output"></div>
+
+        <!--Javascript code that runs our Three.js examples -->
+        <script type="text/javascript">
+        // once everything is loaded, we run our Three.js stuff.
+        $(function () {
+
+    // Контроллеры интерфейс
+    var controls = new function() {
+        this.rotationSpeed = 0.02;
+        this.bouncingSpeed = 0.03;
+        this.cameraPositionX = 0;
+        this.monsterRotate = 0;
+    }
+    var gui = new dat.GUI();
+    gui.add(controls, 'rotationSpeed',0,0.5);
+    gui.add(controls, 'bouncingSpeed',0,0.5);
+    gui.add(controls, 'cameraPositionX',0,100);
+    gui.add(controls, 'monsterRotate',0,360);
+    
+
+
+    // Функция инициализации вывода статистики
+    function initStats() {
+        var stats = new Stats();
+        stats.setMode(0);
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = '0px';
+        stats.domElement.style.top = '0px';
+        $("#Stats-output").append(stats.domElement );
+        return stats;
+    }
+
+    var stats = initStats();
+
+    var scene = new THREE.Scene();
+
+    var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight , 0.1, 1000);
+
+    // Добавляем рендер
+    var renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+    renderer.setClearColorHex(0xEEEEEE, 1.0);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    //renderer.shadowMapEnabled = true
+
+
+    // Добавляем оси
+    var axes = new THREE.AxisHelper( 20 );
+    scene.add(axes);
+
+    // Загружаем текстуру
+    var texture = THREE.ImageUtils.loadTexture( 'img/tiles/ground01.gif' );
+    texture.anisotropy = renderer.getMaxAnisotropy();
+    var material = new THREE.MeshBasicMaterial( { map: texture } );
+
+    // Добавляем плоскость
+    var planeGeometry = new THREE.PlaneGeometry(60,20);
+    //var planeMaterial = new THREE.MeshLambertMaterial({color: 0xffffff});
+    //var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+    var plane = new THREE.Mesh(planeGeometry,material); // Добавляем текстуру на платформу
+
+    plane.receiveShadow = true;
+    plane.rotation.x = -0.5*Math.PI;
+    plane.rotation.z = -0.5*Math.PI;
+    plane.position.x = 0;
+    plane.position.y = 0;
+    plane.position.z = 0;
+    scene.add(plane);
+
+
+    // Добавляем монстра
+    var monsterTexture = [];
+    var monsterMaterial;
+    var i = 0;
+    for(i=0;i<22;i++){
+        var count = ''+(i+1);
+        if(count<10){ count='0'+count; }
+
+        monsterTexture[i] = THREE.ImageUtils.loadTexture( 'img/sprites/zombie02/zombie02.walk01.'+count+'.png' );
+        monsterTexture[i].premultiplyAlpha = true;
+        monsterTexture[i].anisotropy = renderer.getMaxAnisotropy();
+        monsterMaterial = new THREE.MeshBasicMaterial( { map: monsterTexture[i], transparent: true, opacity: 1.0  } );
+    }
+    
+    var monsterPlaneGeometry = new THREE.PlaneGeometry(6,8);
+    var monsterPlane = new THREE.Mesh(monsterPlaneGeometry,monsterMaterial);
+
+    //monsterPlane.receiveShadow = true;
+    monsterPlane.rotation.x = -0.5*Math.PI;
+    monsterPlane.rotation.z = -0.5*Math.PI;
+    monsterPlane.position.x = 0;
+    monsterPlane.position.y = 6;
+    monsterPlane.position.z = 0;
+    scene.add(monsterPlane);
+
+
+
+
+    // Добавляем куб
+    var cubeGeometry = new THREE.CubeGeometry(4,4,4);
+    var cubeMaterial = new THREE.MeshLambertMaterial({color: 0xff0000});
+    var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cube.castShadow = true;
+    cube.position.x = 0;
+    cube.position.y = 4;
+    cube.position.z = -8;
+    scene.add(cube);
+
+    // Добавляем сферу
+    var sphereGeometry = new THREE.SphereGeometry(4,20,20);
+    var sphereMaterial = new THREE.MeshLambertMaterial({color: 0x7777ff});
+    var sphere = new THREE.Mesh(sphereGeometry,sphereMaterial);
+    sphere.castShadow = true;
+    sphere.position.x = 0;
+    sphere.position.y = 4;
+    sphere.position.z = 8;
+    scene.add(sphere);
+
+    // Настраиваем позицию камеры
+    camera.position.x = 0;
+    camera.position.y = 50;
+    camera.position.z = 0;
+    camera.lookAt(scene.position);
+
+    // Добавление источника света
+    var spotLight = new THREE.SpotLight( 0xffffff );
+    spotLight.position.set( -40, 60, -10 );
+    scene.add(spotLight );
+    spotLight.castShadow = true;
+
+    // Добавляем функцию обновления рендера
+    var fps = 20;
+    var step = 0;
+    var i = 0;
+    function renderScene() {
+        setTimeout(function() {
+            monsterMaterial.map=monsterTexture[i];
+            monsterPlane.rotation.z = (controls.monsterRotate/360)*2*Math.PI;
+            i++;
+            if( i>=22 ){ i=0; }
+
+            // анимируем куб и сферу
+            cube.rotation.x += controls.rotationSpeed;
+            cube.rotation.y += controls.rotationSpeed;
+            cube.rotation.z += controls.rotationSpeed;
+            step+=controls.bouncingSpeed;
+
+            sphere.position.x = 0 + (8*(Math.cos(step)));
+            sphere.position.z = 8 +( 8*Math.abs(Math.sin(step)));
+
+            camera.position.x = controls.cameraPositionX;
+            camera.lookAt(scene.position);
+
+            // перерисовываем статистику и рендер
+            stats.update();
+            requestAnimationFrame(renderScene);
+            renderer.render(scene, camera);
+        }, 1000/fps);
+    }
+    
+    
+
+    $("#WebGL-output").append(renderer.domElement);
+    renderScene();
+
+});
+        </script>
+    </body>
+</html>
