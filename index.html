@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>  
+    <head>
+        <title>Example 01.01 - Basic skeleton</title>
+        <script type="text/javascript" src="libs/three.min.js"></script>
+        <script type="text/javascript" src="js/Object2d.js"></script>
+        <!--script type="text/javascript" src="libs/stats.min.js"></script-->
+        <script type="text/javascript" src="js/game.js"></script>
+        <script type="text/javascript" src="libs/dat.gui.min.js"></script>
+        <script type="text/javascript" src="libs/jquery-1.11.2.min.js"></script>
+
+        <style>
+        body{
+        /* set margin to 0 and overflow to hidden, 
+        to use the complete page */
+        margin: 0;
+        overflow: hidden;
+        }
+        </style>
+    </head>
+    <body>
+        <!--Div which will hold the Output -->
+        <div id="WebGL-output"></div>
+
+        <!--Div which stat hold the Output -->
+        <!--div id="Stats-output"></div-->
+
+        <!--Javascript code that runs our Three.js examples -->
+        <script type="text/javascript">
+
+    // Прячем курсор
+    $('body').mouseover(function(){
+        $(this).css({cursor: 'none'});
+    });
+
+
+
+        // once everything is loaded, we run our Three.js stuff.
+        $(function () {
+
+    var i = 0;
+
+
+    // Контроллеры интерфейс
+    var controls = new function() {
+        // this.rotationSpeed = 0.02;
+        this.light = false;
+        this.cameraScale = 0.02;
+        this.cameraRotate = 0;
+        //this.monsterRotate = 0;
+    }
+    var gui = new dat.GUI();
+    // gui.add(controls, 'rotationSpeed',0,0.5);
+    gui.add(controls, 'light');
+    gui.add(controls, 'cameraScale',0.4,2.0);
+    gui.add(controls, 'cameraRotate',0,360);
+
+    // Функция инициализации вывода статистики
+    function initStats() {
+        var stats = new Stats();
+        stats.setMode(0);
+        stats.domElement.style.position = 'absolute';
+        stats.domElement.style.left = '0px';
+        stats.domElement.style.top = '0px';
+        $("#Stats-output").append(stats.domElement );
+        return stats;
+    }
+    
+    // вычисление угла по координатам центра и точки
+    function get_angle(x, y){
+        if(x==0) return (y>0) ? 180 : 0;
+        var a = Math.atan(y/x)*180/Math.PI;
+        a = (x > 0) ? a+90 : a+270;
+        a = (a<90) ? a+270 : a-90;
+        return a;
+    }
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function degInRad(deg) {
+        return deg * Math.PI / 180;
+    }  
+
+    //var stats = initStats();
+
+    var scene = new THREE.Scene();
+
+    //var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight , 0.1, 1000);
+    var camS = 0.05;
+    var camW = window.innerWidth*camS;
+    var camH = window.innerHeight*camS;
+    //var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight , 0.1, 1000);
+    var camera = new THREE.OrthographicCamera(  camW / - 2, camW / 2, camH / 2, camH / - 2, 1, 31 );
+
+    // Добавляем рендер
+    var renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+    renderer.setClearColorHex(0xEEEEEE, 1.0);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMapEnabled = false;
+
+
+    // Земля
+    var groungList = [
+        'grass.01.01.png', 'grass.01.02.png', 'grass.01.03.png', 'grass.01.04.png', 'grass.01.05.png', 'grass.01.06.png', 'grass.01.07.png',
+        'grass.02.01.png', 'grass.02.02.png', 'grass.02.03.png', 'grass.02.04.png', 'grass.02.05.png', 'grass.02.06.png',
+        'grass.03.01.png', 'grass.03.02.png', 'grass.03.03.png', 'grass.03.04.png', 'grass.03.05.png', 'grass.03.06.png', 'grass.03.07.png',
+        'sand.01.01.png', 
+        'sand.02.01.png', 'sand.02.02.png', 'sand.02.03.png', 'sand.02.04.png'
+    ];
+    var groungTexture = [];
+    var groungMaterial = [];
+    i = 0;
+    for(i=0;i<25;i++){
+        groungTexture[i] = THREE.ImageUtils.loadTexture( 'img/tiles/'+groungList[i] );
+        groungTexture[i].anisotropy = renderer.getMaxAnisotropy();
+        groungMaterial[i] = new THREE.MeshLambertMaterial( { map: groungTexture[i], transparent: true, opacity: 1.0} );
+    }
+
+    var pX=0;
+    var pY=0;
+    var groungPlaneGeometry = [];
+    var groungPlane = [];
+    for(pX=-7;pX<8;pX++){
+        groungPlane[pX] = [];
+        groungPlaneGeometry[pX] = [];
+        for(pY=-5;pY<6;pY++){
+            groungPlaneGeometry[pX][pY] = new THREE.PlaneGeometry(6,6);
+            var r = getRandomInt(20,24);
+            console.log('r: ['+r+']');
+            groungPlane[pX][pY] = new THREE.Mesh(groungPlaneGeometry[pX][pY],groungMaterial[r]);
+
+            // groungPlane[pX][pY].rotation.x = -0.5*Math.PI;
+            // groungPlane[pX][pY].rotation.z = -0.5*Math.PI;
+
+            groungPlane[pX][pY].position.x = pX*3;
+            groungPlane[pX][pY].position.y = pY*3;
+            groungPlane[pX][pY].position.z = Math.random();
+            
+            if(pX%2){ groungPlane[pX][pY].position.z += 0.01; }
+            if(pY%2){ groungPlane[pX][pY].position.z += 0.02; }
+            if(r==20){ groungPlane[pX][pY].position.z += 1; }
+            scene.add(groungPlane[pX][pY]);
+    }}
+
+    //  Проверка работы с анимированными объектами
+    obj2d = new THREE.Object2dContainer();
+    obj2d.load( "img/sprites/zombie02.json", function(){ 
+        console.log("object loaded");
+        var obj1 = obj2d.create("zombie1",renderer);
+        obj1.animations.walk.Plane.position.x = 10;
+        obj1.animations.walk.Plane.position.y = 10;
+        obj1.animations.walk.Plane.position.z = 3;
+        scene.add(obj1.animations.walk.Plane);
+
+        var obj2 = obj2d.create("zombie1",renderer);
+        obj2.animations.walk.Plane.position.x = -10;
+        obj2.animations.walk.Plane.position.y = -10;
+        obj2.animations.walk.Plane.position.z = 3;
+        scene.add(obj2.animations.walk.Plane);
+    });
+
+
+
+    // Добавляем монстра
+    var monsterTexture = [];
+    var monsterMaterial;
+    i = 0;
+    for(i=0;i<22;i++){
+        var count = ''+(i+1);
+        if(count<10){ count='0'+count; }
+
+        monsterTexture[i] = THREE.ImageUtils.loadTexture( 'img/sprites/zombie02/zombie02.walk01.'+count+'.png' );
+        //monsterTexture[i].premultiplyAlpha = true;
+        monsterTexture[i].anisotropy = renderer.getMaxAnisotropy();
+    }
+    monsterMaterial = new THREE.MeshBasicMaterial( { map: monsterTexture[0], transparent: true, opacity: 1.0} );
+    //monsterMaterial = new THREE.MeshBasicMaterial( { map: monsterTexture[i]} );
+    
+    var monsterPlaneGeometry = new THREE.PlaneGeometry(6,8);
+    var monsterPlane = new THREE.Mesh(monsterPlaneGeometry,monsterMaterial);
+
+    monsterPlane.castShadow = false;
+    //monsterPlane.rotation.x = -0.5*Math.PI;
+    //monsterPlane.rotation.z = -0.5*Math.PI;
+    monsterPlane.position.x = 0;
+    monsterPlane.position.y = 0;
+    monsterPlane.position.z = 3;
+    scene.add(monsterPlane);
+
+
+    // Добавляем курсор
+    // Добавляем монстра
+    var cursorTexture = THREE.ImageUtils.loadTexture( 'img/aim.png' );;
+    cursorTexture.anisotropy = renderer.getMaxAnisotropy();
+    var cursorMaterial = new THREE.MeshBasicMaterial( { map: cursorTexture, transparent: true, opacity: 0.8} );
+    var cursorPlaneGeometry = new THREE.PlaneGeometry(2,2);
+    var cursorPlane = new THREE.Mesh(cursorPlaneGeometry,cursorMaterial);
+
+    cursorPlane.castShadow = false;
+    // cursorPlane.rotation.x = -0.5*Math.PI;
+    // cursorPlane.rotation.z = -0.5*Math.PI;
+    cursorPlane.position.x = 0;
+    cursorPlane.position.y = 0;
+    cursorPlane.position.z = 6;
+    scene.add(cursorPlane);
+
+    // управление мышкой
+    document.addEventListener('mousemove', function (event){
+        var x = (event.clientX-window.innerWidth/2)*camS;
+        var y = -(event.clientY-window.innerHeight/2)*camS;
+        cursorPlane.position.x = x;
+        cursorPlane.position.y = y;
+        light.position.x = x;
+        light.position.y = y;
+        var angle = get_angle(x,y);
+        monsterPlane.rotation.z = (angle/360)*2*Math.PI;
+
+    })
+
+    // управление мышкой
+    $(document).bind("contextmenu",function(e){
+        return false;
+    });
+
+/*    $('body').click(function() {
+        if(light.position.z == 5){
+            light.position.z = 20;
+        }else{
+            light.position.z = 5;
+        }
+    });*/
+
+    $('body').mousedown(function(e){ 
+        if( e.button == 2 ) { 
+            if(light.position.z == 5){
+                light.position.z = 20;
+            }else{
+                light.position.z = 5;
+            }
+            return false; 
+        } 
+        return true; 
+    }); 
+
+    // Настраиваем позицию камеры
+    camera.position.x = 0;
+    camera.position.y = 0;
+    camera.position.z = 30;
+    //camera.lookAt(scene.position);
+
+    // Добавление источника света
+    var lightCenter = new THREE.PointLight( 0xffffff );
+    lightCenter.position.set( 0, 0, 5 );
+    lightCenter.intensity = 1;
+    lightCenter.distance = 16;
+    scene.add(lightCenter );
+
+    var light = new THREE.PointLight( 0xffffff );
+    light.position.set( 0, 0, 5 );
+    light.intensity = 0.5;
+    light.distance = 20;
+    scene.add(light );
+
+    var lightEnv = new THREE.AmbientLight( 0x606060 );
+    lightEnv.intensity = 0.3;
+    //scene.add(lightEnv );
+    
+
+    // Добавляем функцию обновления рендера
+    var fps = 20;
+    var step = 0;
+    var i = 0;
+    var scale=controls.cameraScale;
+    var EnvLight = false;
+    var cameraRotate = 0;
+    function renderScene() {
+        setTimeout(function() {
+            if( controls.light != EnvLight ){
+                if( controls.light == true ){
+                    scene.add(lightEnv );
+                }else{
+                    scene.remove(lightEnv.name );
+                    scene.remove(lightEnv);
+                }
+
+                EnvLight = controls.light;
+            }
+            if( scale != controls.cameraScale ){
+                camS = 0.05*(1/controls.cameraScale);
+                camW = window.innerWidth*camS;
+                camH = window.innerHeight*camS;
+                camera.left = camW / - 2;
+                camera.right = camW / 2;
+                camera.top = camH / 2;
+                camera.bottom = camH / - 2;
+                camera.updateProjectionMatrix ()
+                scale=controls.cameraScale;
+            }
+            if( cameraRotate != controls.cameraRotate ){
+                camera.rotation.z = degInRad(controls.cameraRotate);
+                //camera.rotateOnAxis((new THREE.Vector3(0, 0, 1).normalize()), degInRad(-cameraRotate));
+                //camera.rotateOnAxis((new THREE.Vector3(0, 0, 1).normalize()), degInRad(controls.cameraRotate));
+                cameraRotate = controls.cameraRotate;
+            }
+
+            monsterMaterial.map=monsterTexture[i];
+            i++;
+            if( i>=22 ){ i=0; }
+
+
+
+            // перерисовываем статистику и рендер
+            //stats.update();
+            requestAnimationFrame(renderScene);
+            renderer.render(scene, camera);
+        }, 1000/fps);
+    }
+    
+    
+
+    $("#WebGL-output").append(renderer.domElement);
+    renderScene();
+
+});
+        </script>
+    </body>
+</html>

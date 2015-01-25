@@ -1,0 +1,22 @@
+{
+	"img": "zombie02.walk01.png",
+	"transparent": true,
+	"opacity": 1.0,
+	"shadow": {
+		"cast": false
+	},
+	"geometry": {
+		"w": 6,
+		"h": 8
+	},
+	"frame": {
+		"start": 0,
+		"end": 21,
+		"count": 0,
+		"step": 1,
+		"size": {
+			"w": 147,
+			"h": 192
+		}
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"metadata": {
+		"formatVersion" : 1.0,
+		"generatedBy"   : "manual",
+		"animations"    : 1,
+		"images"       	: 1,
+		"type"          : "object2d",
+		"name"			: "BigZombie"
+	},
+	"animations": {
+		"walk01": { }
+	}
+}
+
